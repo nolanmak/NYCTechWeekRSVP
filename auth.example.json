@@ -1,0 +1,14 @@
+{
+  "_comment": "Copy to auth.json and fill in real values. See SETUP.md for two ways to capture these. The idToken expires every ~1hr; the runner auto-refreshes it via the refreshToken when <5min remaining or on a 401.",
+
+  "userId": "<your firebase user id — from the JWT 'sub' claim or any api.partiful.com request body>",
+  "name": "Your Name",
+  "amplitudeDeviceId": "<copy from any captured api.partiful.com request body>",
+  "amplitudeSessionId": 0,
+  "firebaseApiKey": "AIzaSyCky6PJ7cHRdBKk5X7gjuWERWaKWBHr4_k",
+  "firebaseProject": "getpartiful",
+  "refreshToken": "<your refresh token — see SETUP.md>",
+  "idToken": "<your Firebase ID JWT — see SETUP.md>",
+  "idTokenIssuedAt": 0,
+  "idTokenExpiresAt": 0
+}

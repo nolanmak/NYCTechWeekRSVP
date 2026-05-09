@@ -1,0 +1,24 @@
+{
+  "_comment": "Copy this file to profile.json and fill in YOUR details. The runner matches by question 'type' (linkedin/email/phone) first, then by keyword regex against 'short_answer' question text. See KEYWORD_PATTERNS in rsvp.js for the full match list. With --guess, unmatched short_answer questions fall back to the 'interest' field.",
+
+  "name": "Your Full Name",
+  "linkedin": "https://www.linkedin.com/in/your-handle/",
+  "email": "you@example.com",
+  "phone": "+15555555555",
+  "company": "Your Company",
+  "role": "Your Role",
+  "companyAndRole": "Your Company — Your Role",
+  "location": "New York, NY",
+  "twitter": "",
+  "github": "https://github.com/your-handle",
+  "website": "",
+  "interest": "One-sentence pitch on why you want to attend Tech Week. Used for 'why are you interested' style questions and as the default fallback when --guess is on.",
+  "referral": "Found this event via the NYC Tech Week calendar.",
+  "buildIdea": "TBD — looking forward to collaborating with the team on the day.",
+  "teamMembers": "Solo (N/A)",
+  "firstName": "Your",
+  "lastName": "Name",
+
+  "defaultRsvpStatus": "GOING",
+  "timezone": "America/New_York"
+}

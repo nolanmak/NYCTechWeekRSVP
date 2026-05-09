@@ -1,0 +1,24 @@
+# Secrets — DO NOT COMMIT
+auth.json
+profile.json
+
+# Runtime artifacts (regenerable)
+events.json
+rsvp_log.json
+rsvp_log_retry_dryrun.json
+*.log
+
+# Node
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code harness state — internal, never commit
+.claude/
