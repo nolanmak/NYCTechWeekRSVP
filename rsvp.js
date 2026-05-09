@@ -62,7 +62,7 @@ const PARTIFUL_API = "https://api.partiful.com";
 const SECURETOKEN_ENDPOINT =
   "https://securetoken.googleapis.com/v1/token";
 const TOKEN_REFRESH_BUFFER_SEC = 5 * 60;
-const PER_EVENT_DELAY_MS = 400; // tightened from 900 — Partiful seems to tolerate ~2 req/sec fine
+const PER_EVENT_DELAY_MS = 1200; // 400ms triggered Partiful 429s after ~150 events; 1200ms is safe
 
 const sleep = (ms) =>
   new Promise((r) => setTimeout(r, ms + Math.random() * 200));
@@ -156,6 +156,11 @@ async function callPartiful(endpoint, auth, body, { retried = false } = {}) {
     await refreshIdToken(auth);
     return callPartiful(endpoint, auth, body, { retried: true });
   }
+  if (res.status === 429 && !retried) {
+    console.log(`  [rate] 429 on ${endpoint}, sleeping 60s then retrying once…`);
+    await sleep(60_000);
+    return callPartiful(endpoint, auth, body, { retried: true });
+  }
   const text = await res.text();
   let json;
   try { json = JSON.parse(text); } catch { json = { _raw: text }; }
@@ -201,11 +206,17 @@ const KEYWORD_PATTERNS = [
   { rx: /(why|interest|driving|excited|hope.*to|looking.*for|what.*brings.*you|what.*hope.*get|goals?\s+during|what.*can.*you.*provide|focused\s+on\s+right\s+now)/i, field: "interest" },
   { rx: /(referr|invited|how.*did.*you.*hear|point.*of.*contact|who.*sent)/i, field: "referral" },
   { rx: /(location|city|where.*based)/i,                        field: "location" },
-  { rx: /(first\s*&?\s*last\s*name|full\s+name|your\s+name)/i,  field: "name" },
+  { rx: /(country)/i,                                           field: "country" },
+  { rx: /(dietary|allergies|food\s+restrictions?)/i,            field: "dietaryRestrictions" },
+  { rx: /(funding|fundrais|series\s+of|round)/i,                field: "fundingStage" },
+  { rx: /(member\s+of\s+the\s+media|press|publication|journalist)/i, field: "mediaAffiliation" },
+  { rx: /(influencer|content\s+creator)/i,                      field: "influencerInfo" },
+  { rx: /(first\s*&?\s*last\s*name|full\s+name|your\s+name|^\s*name\s*$)/i, field: "name" },
   { rx: /(first\s+name)/i,                                      field: "firstName" },
   { rx: /(last\s+name|surname)/i,                               field: "lastName" },
   { rx: /(team\s+members?|teammates?|who.*on.*your.*team)/i,    field: "teamMembers" },
   { rx: /(what.*will.*you.*build|what.*are.*you.*build|project.*idea|build.*idea)/i, field: "buildIdea" },
+  { rx: /(^\s*title\s*$|your\s+title|what.*your.*title)/i,      field: "title" },
 ];
 
 // Picks an option for a `select` question. Single-option always picked (always-on).
@@ -450,10 +461,14 @@ async function main() {
       process.exit(1);
     }
     const prior = JSON.parse(fs.readFileSync(LOG_PATH, "utf8"));
+    const retryable = new Set([
+      "skip_unmatched_required",
+      "error_getEventInfo",
+      "error_addGuest",
+      "dry_run_would_submit", // leftovers from a prior dry-run that never went live
+    ]);
     const skippedSlugs = new Set(
-      prior.results
-        .filter((r) => r.outcome === "skip_unmatched_required")
-        .map((r) => r.slug)
+      prior.results.filter((r) => retryable.has(r.outcome)).map((r) => r.slug)
     );
     candidates = candidates.filter((e) => skippedSlugs.has(e.partifulSlug));
   }

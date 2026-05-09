@@ -2,7 +2,7 @@
 
 **Auto-RSVP to every NYC Tech Week event you can.** Harvests the public Tech Week calendar, opens each Partiful event, fills in the questionnaire from your saved profile, and submits.
 
-In one real run: **672 RSVPs submitted in ~25 minutes** out of 1,203 eligible events for NYC Tech Week 2026.
+The full NYC schedule is ~1,400 events across the week. This script gets you in for as many as it possibly can, in under 30 minutes.
 
 ## What it does
 
