@@ -42,6 +42,9 @@ Usage:
                                      we'd otherwise skip. Higher coverage, lower-quality answers.
   node rsvp.js --live --retry-skipped Re-run only events that previously skipped due to
                                      unmatched questions (reads rsvp_log.json). Pair with --guess.
+  node rsvp.js --answers-file <path> Load {"question text": "answer"} JSON map; used as a
+                                     curated override before the --guess fallback. For select
+                                     questions the override is fuzzy-matched to the option list.
   --help, -h                         This message.
 `);
   process.exit(0);
@@ -49,6 +52,10 @@ Usage:
 const DRY_RUN = !args.includes("--live");
 const GUESS = args.includes("--guess");
 const RETRY_SKIPPED = args.includes("--retry-skipped");
+const ANSWERS_FILE = (() => {
+  const i = args.indexOf("--answers-file");
+  return i >= 0 ? args[i + 1] : null;
+})();
 const LIMIT = (() => {
   const i = args.indexOf("--limit");
   return i >= 0 ? parseInt(args[i + 1], 10) : Infinity;
@@ -254,7 +261,56 @@ function guessSelect(q, profile, { guess = false } = {}) {
   return opts[0];
 }
 
-function answerForQuestion(q, profile, { guess = false } = {}) {
+// Normalize question text for override-map lookup. Collapses whitespace, lowercases,
+// strips trailing punctuation so minor wording variants still hit the same key.
+function normQ(s) {
+  return (s || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[?.!:;,*]+$/g, "")
+    .trim();
+}
+
+// If an override is provided for a select-style question, find the option that
+// matches it (exact ci, then contains either way). Returns null if no option matches.
+function pickSelectOption(q, override) {
+  const opts = (q.options || []).map((o) =>
+    typeof o === "string" ? o : (o.label || o.value || String(o))
+  );
+  if (!opts.length) return null;
+  const ov = String(override).toLowerCase().trim();
+  let hit = opts.find((o) => o.toLowerCase().trim() === ov);
+  if (hit) return hit;
+  hit = opts.find((o) => o.toLowerCase().includes(ov));
+  if (hit) return hit;
+  hit = opts.find((o) => ov.includes(o.toLowerCase()));
+  if (hit) return hit;
+  return null;
+}
+
+function answerForQuestion(q, profile, { guess = false, answersMap = null } = {}) {
+  const isSelect =
+    q.type === "select" ||
+    q.type === "multiple_choice" ||
+    q.type === "single_choice" ||
+    q.type === "dropdown";
+
+  // 0. Curated override map (highest priority — user-provided / AI-generated answers)
+  if (answersMap) {
+    const key = normQ(q.text);
+    if (key && Object.prototype.hasOwnProperty.call(answersMap, key)) {
+      const ov = answersMap[key];
+      if (ov !== null && ov !== undefined && String(ov).trim()) {
+        if (isSelect) {
+          const opt = pickSelectOption(q, ov);
+          if (opt) return opt;
+        } else {
+          return String(ov);
+        }
+      }
+    }
+  }
+
   // 1. Type-based deterministic match
   switch (q.type) {
     case "linkedin": return profile.linkedin || null;
@@ -281,13 +337,13 @@ function answerForQuestion(q, profile, { guess = false } = {}) {
   return null;
 }
 
-function buildQuestionnaireResponse(questionnaire, profile, { guess = false } = {}) {
+function buildQuestionnaireResponse(questionnaire, profile, { guess = false, answersMap = null } = {}) {
   if (!questionnaire || !Array.isArray(questionnaire.questions)) return null;
   const answers = {};
   const unmatchedRequired = [];
   const unmatchedOptional = [];
   for (const q of questionnaire.questions) {
-    const a = answerForQuestion(q, profile, { guess });
+    const a = answerForQuestion(q, profile, { guess, answersMap });
     if (a !== null) {
       answers[q.id] = a;
     } else if (q.required) {
@@ -314,7 +370,7 @@ function alreadyRsvpd(guests, userId) {
   );
 }
 
-async function processEvent(event, auth, profile, results) {
+async function processEvent(event, auth, profile, results, answersMap = null) {
   const slug = event.partifulSlug;
   console.log(
     `\n[${event.date} ${event.time}] ${event.name}  →  partiful/${slug}`
@@ -361,7 +417,7 @@ async function processEvent(event, auth, profile, results) {
   // Build questionnaire response
   let questionnaireResponse = null;
   if (ev.questionnaireEnabled && ev.questionnaire) {
-    const built = buildQuestionnaireResponse(ev.questionnaire, profile, { guess: GUESS });
+    const built = buildQuestionnaireResponse(ev.questionnaire, profile, { guess: GUESS, answersMap });
     if (built.unmatchedRequired.length > 0) {
       console.log(
         `  → skip: ${built.unmatchedRequired.length} required questions unmatched:`
@@ -446,6 +502,19 @@ async function main() {
   const auth = loadJSON(AUTH_PATH);
   const profile = loadJSON(PROFILE_PATH);
 
+  let answersMap = null;
+  if (ANSWERS_FILE) {
+    const ap = path.isAbsolute(ANSWERS_FILE) ? ANSWERS_FILE : path.join(ROOT, ANSWERS_FILE);
+    if (!fs.existsSync(ap)) {
+      console.error(`--answers-file not found: ${ap}`);
+      process.exit(1);
+    }
+    const raw = JSON.parse(fs.readFileSync(ap, "utf8"));
+    answersMap = {};
+    for (const [k, v] of Object.entries(raw)) answersMap[normQ(k)] = v;
+    console.log(`loaded ${Object.keys(answersMap).length} curated answers from ${ANSWERS_FILE}`);
+  }
+
   let candidates = events.filter(
     (e) =>
       !e.isInviteOnly &&
@@ -474,7 +543,7 @@ async function main() {
   }
 
   console.log(
-    `mode: ${DRY_RUN ? "DRY RUN" : "LIVE"}${GUESS ? " +GUESS" : ""}${RETRY_SKIPPED ? " +RETRY_SKIPPED" : ""} | candidates: ${candidates.length}` +
+    `mode: ${DRY_RUN ? "DRY RUN" : "LIVE"}${GUESS ? " +GUESS" : ""}${RETRY_SKIPPED ? " +RETRY_SKIPPED" : ""}${answersMap ? " +ANSWERS" : ""} | candidates: ${candidates.length}` +
       (LIMIT < Infinity ? ` (limit=${LIMIT})` : "") +
       (ONLY_EVENT ? ` (event=${ONLY_EVENT})` : "")
   );
@@ -483,7 +552,7 @@ async function main() {
   let processed = 0;
   for (const e of candidates) {
     if (processed >= LIMIT) break;
-    await processEvent(e, auth, profile, results);
+    await processEvent(e, auth, profile, results, answersMap);
     processed++;
     await sleep(PER_EVENT_DELAY_MS);
   }

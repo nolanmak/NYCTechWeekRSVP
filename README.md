@@ -77,6 +77,7 @@ CITY=sf START_DAY=2026-10-13 END_DAY=2026-10-19 node harvest.js
 | `node rsvp.js --live --event <slug>` | Single Partiful event slug only. |
 | `node rsvp.js --live --guess` | Aggressive: pick options for select/multiple-choice and use your `interest` blurb as fallback for unmatched short-answers. Higher coverage, lower-quality answers. |
 | `node rsvp.js --live --retry-skipped --guess` | Re-run only previously-skipped events with `--guess`. Merges results into `rsvp_log.json`. |
+| `node rsvp.js --live --answers-file answers.json` | Load a curated `{ "question text": "answer" }` map. Used **before** the `--guess` fallback. Great for hand- or AI-authored answers to specific event prompts (e.g. "Why do you want to attend?"). For `select` questions the override is fuzzy-matched to the option list. |
 | `node rsvp.js --help` | This list. |
 
 ## Running with an AI assistant
