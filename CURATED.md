@@ -18,8 +18,8 @@ _Hand-picked events from people we know running them. Show up to these first._
 
 | Date | Time | Event | Host | Location |
 |------|------|-------|------|----------|
-| 2026-06-03 | 2:00pm | [Frontier House NYC - General Partner Roundtable](https://partiful.com/e/IjcQJFIYc2PPkDOy0h3r) | Eleven Wall Ventures | Midtown |
-| 2026-06-05 | 6:00pm | [PHL vs NYC Founder Draft](https://partiful.com/e/vMnZZEd9ek0rQ09zFpeE) | localhost:nyc + TechBrig + Pace University | Midtown |
+| 2026-06-03 | 2:00pm | [Frontier House NYC - General Partner Roundtable](https://partiful.com/e/IjcQJFIYc2PPkDOy0h3r) | Eleven Wall Ventures + OneSixOne Ventures + Ohio Startup Network + Tech Week | Midtown |
+| 2026-06-05 | 6:00pm | [PHL vs NYC Founder Draft](https://partiful.com/e/vMnZZEd9ek0rQ09zFpeE) | Lasya Tarini + localhost:nyc + TechBrig + Pace University | Midtown |
 
 ## Free Food
 

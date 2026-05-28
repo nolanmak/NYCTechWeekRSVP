@@ -32,6 +32,21 @@ const FRIENDS_SLUGS = new Set([
   'IjcQJFIYc2PPkDOy0h3r', // Frontier House NYC GP Roundtable (OneSixOne Ventures et al)
 ]);
 
+// Per-slug host overrides for the Friends section. The harvest pulls hosts
+// from tech-week.com, which sometimes drops co-organizers we care about
+// (e.g. OneSixOne missing from the Frontier House listing). Override here
+// rather than mutating events.json.
+const FRIENDS_HOST_OVERRIDES = {
+  IjcQJFIYc2PPkDOy0h3r: {
+    host: 'Eleven Wall Ventures',
+    cohosts: ['OneSixOne Ventures', 'Ohio Startup Network', 'Tech Week'],
+  },
+  vMnZZEd9ek0rQ09zFpeE: {
+    host: 'Lasya Tarini',
+    cohosts: ['localhost:nyc', 'TechBrig', 'Pace University'],
+  },
+};
+
 const matchers = [
   {
     title: 'AI Labs & Big Tech',
@@ -156,7 +171,10 @@ const fmtTime = (t) => {
 const escapePipes = (s) => (s || '').replace(/\|/g, '\\|');
 
 const eventRow = (e, extraCol = null) => {
-  const host = [e.host, ...(e.cohosts || [])].filter(Boolean).join(' + ');
+  const override = FRIENDS_HOST_OVERRIDES[e.partifulSlug];
+  const hostName = override?.host ?? e.host;
+  const hostList = override?.cohosts ?? e.cohosts ?? [];
+  const host = [hostName, ...hostList].filter(Boolean).join(' + ');
   const name = escapePipes(e.name);
   const link = `[${name}](${e.rsvpUrl})`;
   const base = `| ${e.date} | ${fmtTime(e.time)} | ${link} | ${escapePipes(host)} | ${escapePipes(e.location)} |`;
