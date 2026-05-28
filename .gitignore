@@ -4,6 +4,8 @@ profile.json
 
 # Runtime artifacts (regenerable)
 events.json
+events.json.bak
+descriptions.json
 rsvp_log.json
 rsvp_log_retry_dryrun.json
 *.log
